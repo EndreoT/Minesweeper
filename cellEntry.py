@@ -2,52 +2,11 @@ from enum import Enum
 from itertools import product
 from random import sample
 from typing import Set, Tuple, List, Union
+from collections import namedtuple
 
 
-class EntryValue(Enum):
-    MINE = "m"
-    ZERO = 0
-    ONE = 1
-    TWO = 2
-    THREE = 3
-    FOUR = 4
-    FIVE = 5
-    SIX = 6
-    SEVEN = 7
-    EIGHT = 8
-    NULL = None
+Coordinate = namedtuple('Coordinate', ['row', 'col'])
 
-    def isNum(self):
-        return type(self.value) is int
-
-    def isZero(self):
-        return self.value == 0
-
-class Entry:
-
-    def __init__(self, value: EntryValue):
-        if type(value) != EntryValue:
-            raise TypeError
-        self._value = value
-    
-    @property
-    def value(self):
-        return self._value
-
-    def isMine(self) -> bool:
-        return self.value == EntryValue.MINE
-
-    def __str__(self):
-        return str(self.value)
-
-class Coordinate:
-
-    def __init__(self, row: int, col: int):
-        self.row = row
-        self.col = col
-
-    def __str__(self):
-        return "(row=" + str(self.row) + ", " + "col=" + str(self.col) + ")"
 
 def get_adjacent(index: Coordinate) -> Set[Coordinate]:
     """Returns adjacent coordinates for input coordinate"""
@@ -63,6 +22,54 @@ def get_adjacent(index: Coordinate) -> Set[Coordinate]:
     for coord in coordinates:
         output.add(Coordinate(coord[1], coord[0]))
     return output
+
+
+class EntryValue(Enum):
+    MINE = -1
+    ZERO = 0
+    ONE = 1
+    TWO = 2
+    THREE = 3
+    FOUR = 4
+    FIVE = 5
+    SIX = 6
+    SEVEN = 7
+    EIGHT = 8
+    NULL = None
+
+    def isNum(self):
+        return type(self.value) is int and self.value >= 0
+
+    def isZero(self):
+        return self.value == 0
+    
+    def isMine(self):
+        return self.value == -1
+
+class Entry:
+
+    def __init__(self, value: EntryValue):
+        if type(value) != EntryValue:
+            raise TypeError
+        self._value = value
+        self._flag = False
+    
+    @property
+    def value(self):
+        return self._value
+
+    def isMine(self) -> bool:
+        return self.value == EntryValue.MINE
+    
+    def isFlagged(self) -> bool:
+        return self._flag
+    
+    def swap_flag_state(self) -> bool:
+        self._flag  = not self._flag 
+        return self._flag 
+
+    def __str__(self):
+        return str(self.value)
 
 
 class Board:
@@ -83,7 +90,19 @@ class Board:
         self._cells_revealed = set()
         self._cells_flagged = set()
         self._revealed_zeroes = set()
-        self._game_state = None
+        # self._game_state = None
+    
+    def add_to_revealed_zeroes(self, coord: Coordinate) -> None:
+        self._revealed_zeroes.add(coord)
+
+    def add_to_cells_flagged(self, coord: Coordinate) -> None:
+        self._cells_flagged.add(coord)
+    
+    def remove_from_cells_flagged(self, coord: Coordinate) -> bool:
+        if coord in self._cells_flagged:
+            self._cells_flagged.remove(coord)
+            return True
+        return False
     
     # @property
     # def _width(self):
@@ -110,8 +129,9 @@ class Board:
     def _add_mines(self) -> None:
         # """Randomly adds mines to board grid."""
 
-        for col, row in sample(list(product(range(self._width), range(self._height))), self._num_mines):
-            self.grid[row][col] = Entry(EntryValue.MINE)
+        # for col, row in sample(list(product(range(self._width), range(self._height))), self._num_mines):
+        #     self.grid[row][col] = Entry(EntryValue.MINE)
+        self.grid[1][1] = Entry(EntryValue.MINE)
 
     def _set_adjacent_mine_count(self) -> None:
         # """Sets cell values to the number of their adjacent mines."""
@@ -176,133 +196,292 @@ from tkinter import Button, Label, Tk, Frame, StringVar
 from typing import Tuple, List, Union
 
 
-class GUIView:
-    """Creates a GUI with a grid of cell buttons."""
+# class GUIView:
+#     """Creates a GUI with a grid of cell buttons."""
+
+#     def __init__(self,
+#                  width: int,
+#                  height: int,
+#                  num_mines: int,
+#                  controller: "controller.Controller"):
+#         """
+#         :param width: The horizontal span of the array
+#         :param height: The vertical span of the array
+#         :param num_mines: The number of mines to be seeded
+#         :param controller: A controller class instance
+#         """
+#         self.master = Tk()
+#         self.width = width
+#         self.height = height
+#         self.num_mines = num_mines
+#         self.controller = controller
+#         self.color_dict = {
+#             0: 'white', 1: 'blue', 2: 'green',
+#             3: 'red', 4: 'orange', 5: 'purple',
+#             6: 'grey', 7: 'grey', 8: 'grey',
+#             -1: "black"
+#             }
+#         self.master.title('Minesweeper')
+
+#     def _create_buttons(self) -> list:
+#         """Create cell button widgets."""
+
+#         def create_button(x: int, y: int) -> Button:
+#             button = Button(self.master, width=5, bg='grey')
+#             button.grid(row=y + 5, column=x + 1)
+#             return button
+
+#         return [
+#                 [create_button(x, y) for x in range(self.width)]
+#                 for y in range(self.height)
+#                 ]
+
+#     def _initialize_bindings(self) -> None:
+#         """Set up the reveal cell and the flag cell key bindings."""
+
+#         for x in range(self.width):
+#             for y in range(self.height):
+#                 def closure_helper(f, index):
+#                     def g(_):
+#                         f(index)
+#                     return g
+
+#                 # Bind reveal decision method to left click
+#                 self.buttons[y][x].bind(
+#                     '<Button-1>', closure_helper(
+#                         self.controller.reveal_decision, (x, y)))
+
+#                 # Bind flag method to right click
+#                 self.buttons[y][x].bind(
+#                     '<Button-3>', closure_helper(
+#                         self.controller.update_flagged_cell, (x, y)))
+
+#         # Set up reset button
+#         self.top_panel.reset_button.bind(
+#             '<Button>', lambda event: self.controller.reset())
+
+#     def reset_view(self) -> None:
+#         """Destroys the GUI. Controller will create a new GUI"""
+
+#         self.master.destroy()
+
+#     def reveal_cell(self, index: Tuple[int, int], value: Union[int, str]) -> None:
+#         """Reveals cell's value on GUI."""
+
+#         x, y = index
+#         self.buttons[y][x].configure(text=value, bg=self.color_dict[value.value])
+
+#     def flag_cell(self, index: Tuple[int, int]) -> None:
+#         """Flag cell in GUI"""
+
+#         x, y = index
+#         self.buttons[y][x].configure(text="FLAG", bg="yellow")
+
+#     def unflag_cell(self, index: Tuple[int, int]) -> None:
+#         """Unflag cell in GUI"""
+#         x, y = index
+#         self.buttons[y][x].configure(text="", bg="grey")
+
+#     def update_mines_left(self, mines: int) -> None:
+#         """Updates mine counter widget"""
+
+#         self.top_panel.mine_count.set("Mines remaining: " + str(mines))
+
+#     def display_loss(self) -> None:
+#         """Display the loss label when lose condition is reached."""
+
+#         self.top_panel.loss_label.grid(row=0, columnspan=10)
+
+#     def display_win(self) -> None:
+#         """Display the win label when win condition is reached."""
+
+#         self.top_panel.win_label.grid(row=0, columnspan=10)
+
+#     def main(self) -> None:
+#         self.top_panel = TopPanel(self.master, self.num_mines)
+#         self.buttons = self._create_buttons()
+#         self.top_panel.mines_left.grid(row=0, columnspan=5)
+#         self._initialize_bindings()
+#         self.master.mainloop()
+
+
+# class TopPanel(Frame):
+#     """Creates a top panel which contains game information."""
+
+#     def __init__(self, master: Tk, num_mines: int):
+#         Frame.__init__(self, master)
+#         self.master = master
+#         self.num_mines = num_mines
+#         self.grid()
+
+#         self.reset_button = Button(self.master, width=7, text='Reset')
+#         self.reset_button.grid(row=0)
+
+#         self.loss_label = Label(text='You Lose!', bg='red')
+#         self.win_label = Label(text='You Win!', bg='green')
+
+#         self.mine_count = StringVar()
+#         self.mine_count.set('Mines remaining: ' + str(self.num_mines))
+#         self.mines_left = Label(textvariable=self.mine_count)
+
+
+
+
+
+
+
+class Controller:
+    """Sets up minesweeper game logic."""
 
     def __init__(self,
                  width: int,
                  height: int,
                  num_mines: int,
-                 controller: "controller.Controller"):
+                #  difficulty: str,
+                #  view_type: str
+                 ):
         """
         :param width: The horizontal span of the array
         :param height: The vertical span of the array
         :param num_mines: The number of mines to be seeded
-        :param controller: A controller class instance
+        :param difficulty: A string choosing game difficulty. Choose from 'Easy', 'Medium', or 'hard'
+        :param view_type: A string choosing game type. The choice is either 'GUI', or 'TEXT'
         """
-        self.master = Tk()
         self.width = width
         self.height = height
         self.num_mines = num_mines
-        self.controller = controller
-        self.color_dict = {
-            0: 'white', 1: 'blue', 2: 'green',
-            3: 'red', 4: 'orange', 5: 'purple',
-            6: 'grey', 7: 'grey', 8: 'grey',
-            -1: "black"
-            }
-        self.master.title('Minesweeper')
+        # self.difficulty = difficulty
+        self.board = Board(self.width, self.height, self.num_mines)
+        # if view_type == "GUI":
+        #     self.view = GUIView(self.width, self.height,
+        #                         self.num_mines, self)
+        # elif view_type == "TEXT":
+        #     self.view = TextView(self.width, self.height,
+        #                          self.num_mines, self)
+        # self.view.main()
 
-    def _create_buttons(self) -> list:
-        """Create cell button widgets."""
+    # def reset(self) -> None:
+    #     """Resets the game"""
 
-        def create_button(x: int, y: int) -> Button:
-            button = Button(self.master, width=5, bg='grey')
-            button.grid(row=y + 5, column=x + 1)
-            return button
+    #     self.view.reset_view()
+    #     self.board = Board(self.width, self.height, self.num_mines)
+        # self.view = GUIView(self.width, self.height,
+        #                     self.num_mines, self)
+        # self.view.main()
 
-        return [
-                [create_button(x, y) for x in range(self.width)]
-                for y in range(self.height)
-                ]
+    def reveal_decision(self, index: Coordinate):
+        """Main decision method determining how to reveal cell."""
 
-    def _initialize_bindings(self) -> None:
-        """Set up the reveal cell and the flag cell key bindings."""
+        cell_value = self.board.get_cell_value(index)
+        if index in self.board.cells_flagged():
+            return
+        if cell_value.isZero():
+            return self.reveal_zeroes(index)
+        elif cell_value.isNum():
+            return [self.reveal_cell(index, cell_value)]
+        # elif (
+        #     self.board.get_cell_entry(index).isMine() and self.board.game_state != "win"
+        # ):
+            # self.loss()
+        else:
+             return [self.reveal_cell(index, cell_value)]
+            
 
-        for x in range(self.width):
-            for y in range(self.height):
-                def closure_helper(f, index):
-                    def g(_):
-                        f(index)
-                    return g
+        #        Check for win condition
+        cells_unrevealed = self.height * self.width - len(self.board.cells_revealed())
+        # if cells_unrevealed == self.num_mines and self.board.game_state != "loss":
+        #     self.win()
+        # self.update_mines()
 
-                # Bind reveal decision method to left click
-                self.buttons[y][x].bind(
-                    '<Button-1>', closure_helper(
-                        self.controller.reveal_decision, (x, y)))
+    def reveal_cell(self, index: Coordinate, value: EntryValue) -> Tuple[Coordinate, EntryValue]:
+        # """Obtains cell value from model and passes the value to view."""
 
-                # Bind flag method to right click
-                self.buttons[y][x].bind(
-                    '<Button-3>', closure_helper(
-                        self.controller.update_flagged_cell, (x, y)))
+        if index not in self.board.cells_flagged() and index not in self.board.cells_revealed():
+            self.board.add_to_revealed_zeroes(index)
+            return (index, value)
 
-        # Set up reset button
-        self.top_panel.reset_button.bind(
-            '<Button>', lambda event: self.controller.reset())
+    def reveal_zeroes(self, index: Coordinate):
+        """Reveals all adjacent cells just until a mine is reached."""
+        result = []
+        def reveal_helper(index: Coordinate) -> None:
+            val = self.board.get_cell_value(index)
+            if val.isZero():
+                result.append(self.reveal_cell(index, val))
+                self.board.add_to_revealed_zeroes(index)
+                for coord in get_adjacent(index):
+                    if self.board.is_valid_cell(coord) and self.board.get_cell_value(coord).isZero() and coord not in self.board.revealed_zeroes(): # revealed zeroes necessary?
+                        # self.board.add_to_revealed_zeroes(coord)
+                        reveal_helper(coord)
+        reveal_helper(index)
+        return result
+            
 
-    def reset_view(self) -> None:
-        """Destroys the GUI. Controller will create a new GUI"""
+    # def reveal_adjacent(self, index: Coordinate) -> None:
+    #     """Reveals the 8 adjacent cells to the input cell's index."""
 
-        self.master.destroy()
+    #     for coords in get_adjacent(index):
+    #         if (
+    #                 0 <= coords[0] <= self.width - 1
+    #                 and 0 <= coords[1] <= self.height - 1
+    #         ):
+    #             cell_value = self.board.get_cell_value(coords)
+    #             self.reveal_cell(coords, cell_value)
 
-    def reveal_cell(self, index: Tuple[int, int], value: Union[int, str]) -> None:
-        """Reveals cell's value on GUI."""
+    def update_flagged_cell(self, index: Coordinate) -> None:
+        """Flag/unflag cells for possible mines. Does not reveal cell."""
 
-        x, y = index
-        self.buttons[y][x].configure(text=value, bg=self.color_dict[value.value])
+        if (
+                index not in self.board.cells_revealed()
+                and index not in self.board.cells_flagged()
+        ):
+            self.board.add_to_cells_flagged(index)
+            return index # Flag
 
-    def flag_cell(self, index: Tuple[int, int]) -> None:
-        """Flag cell in GUI"""
+        elif (
+                index not in self.board.cells_revealed()
+                and index in self.board.cells_flagged()
+        ):
+            self.board.remove_from_cells_flagged(index) # Unflag cell
+            return index
 
-        x, y = index
-        self.buttons[y][x].configure(text="FLAG", bg="yellow")
+        # self.update_mines()
 
-    def unflag_cell(self, index: Tuple[int, int]) -> None:
-        """Unflag cell in GUI"""
-        x, y = index
-        self.buttons[y][x].configure(text="", bg="grey")
+    # def update_mines(self) -> None:
+    #     """Update mine counter."""
 
-    def update_mines_left(self, mines: int) -> None:
-        """Updates mine counter widget"""
+    #     mines_left = self.num_mines - len(self.board.cells_flagged())
 
-        self.top_panel.mine_count.set("Mines remaining: " + str(mines))
+    #     if mines_left >= 0:
+    #         self.view.update_mines_left(mines_left)
 
-    def display_loss(self) -> None:
-        """Display the loss label when lose condition is reached."""
+    # def win(self) -> None:
+    #     """Sweet sweet victory."""
 
-        self.top_panel.loss_label.grid(row=0, columnspan=10)
+    #     self.board.change_game_state("win")
+    #     self.view.display_win()
 
-    def display_win(self) -> None:
-        """Display the win label when win condition is reached."""
+    def reveal_all_cells(self):
+        result = []
+        for row in range(self.height):
+            for col in range(self.width):
+                coord = Coordinate(row, col)
+                cell_value = self.board.get_cell_value(coord)
+                result.append((coord, cell_value))
+        return result
 
-        self.top_panel.win_label.grid(row=0, columnspan=10)
+    # def loss(self) -> None:
+    #     """Show loss in view, and reveal all cells."""
 
-    def main(self) -> None:
-        self.top_panel = TopPanel(self.master, self.num_mines)
-        self.buttons = self._create_buttons()
-        self.top_panel.mines_left.grid(row=0, columnspan=5)
-        self._initialize_bindings()
-        self.master.mainloop()
+    #     self.board.change_game_state("loss")
+    #     self.view.display_loss()
+
+    #     #        Reveals all cells
+    #     for row in range(self.height):
+    #         for col in range(self.width):
+    #             cell_value = self.board.get_cell_value((col, row))
+    #             self.view.reveal_cell((col, row), cell_value)
 
 
-class TopPanel(Frame):
-    """Creates a top panel which contains game information."""
-
-    def __init__(self, master: Tk, num_mines: int):
-        Frame.__init__(self, master)
-        self.master = master
-        self.num_mines = num_mines
-        self.grid()
-
-        self.reset_button = Button(self.master, width=7, text='Reset')
-        self.reset_button.grid(row=0)
-
-        self.loss_label = Label(text='You Lose!', bg='red')
-        self.win_label = Label(text='You Win!', bg='green')
-
-        self.mine_count = StringVar()
-        self.mine_count.set('Mines remaining: ' + str(self.num_mines))
-        self.mines_left = Label(textvariable=self.mine_count)
 
 
 class TextView:
@@ -312,7 +491,7 @@ class TextView:
                  width: int,
                  height: int,
                  num_mines: int,
-                 controller: "controller.Controller"
+                 controller: Controller
                  ):
         """
         :param width: The horizontal span of the array
@@ -330,15 +509,14 @@ class TextView:
             6: ' 6  ', 7: ' 7  ', 8: ' 8  ',
             -1: "mine"
         }
-        self.cell_view = self.cell_view()
+        self.cell_value = "cell"
+        self.cell_view = self.create_cell_view()
         self.show_grid()
 
-    def cell_view(self) -> List[List[str]]:
+    def create_cell_view(self) -> List[List[str]]:
         """Create text view of cells."""
 
-        return [["cell" for _ in range(self.width)]
-                for _ in range(self.height)
-                ]
+        return [[self.cell_value for _ in range(self.width)] for _ in range(self.height)]
 
     def show_grid(self) -> None:
         """Prints text grid to console. Includes column numbers."""
@@ -348,11 +526,11 @@ class TextView:
         for row in range(len(self.cell_view)):
             print(str(row) + ":", *self.cell_view[row], sep="  ")
 
-    def reveal_cell(self, index: Tuple[int, int], value: int) -> None:
+    def reveal_cell(self, index: Coordinate, value: EntryValue) -> None:
         """Reveals a cell's value in the text view"""
 
         x, y = index
-        self.cell_view[y][x] = self.reveal_dict[value]
+        self.cell_view[y][x] = self.reveal_dict[value.value]
 
     def flag_cell(self, index: Tuple[int, int]) -> None:
         """Flags cell in cell_view"""
@@ -386,165 +564,38 @@ class TextView:
 
     def main(self) -> None:
         while True:
-            try:
+            # try:
                 cmd, *coords = input(
                     "Choose a cell in the format: "
                     + "flag/reveal x y. Type END to quit.  ").split()
+                input_coord = Coordinate(int(coords[1]), int(coords[0])) 
                 if cmd.lower()[0] == "e":
                     break
-                x, y = coords[0], coords[1]
                 if cmd.lower()[0] == "f":
-                    self.controller.update_flagged_cell((int(x), int(y)))
+                    self.u self.controller.update_flagged_cell(input_coord)
                 elif cmd.lower()[0] == "r":
-                    self.controller.reveal_decision((int(x), int(y)))
+                    
+                    result = self.controller.reveal_decision(input_coord)  
+                    mine_found = False    
+                    for output_coord, value in result:
+                        if value.isMine():
+                            mine_found = True
+                        self.reveal_cell(output_coord, value)
+                    if mine_found:
+                        for output_coord, value in self.controller.reveal_all_cells():
+                            self.reveal_cell(output_coord, value)
+                        
                 else:
                     print("Unknown command")
                 self.show_grid()
-            except Exception:
-                print("Incorrect selection or format")
+            # except Exception:
+            #     print("Incorrect selection or format")
 
 
 
 
 
-class Controller:
-    """Sets up minesweeper game logic."""
 
-    def __init__(self,
-                 width: int,
-                 height: int,
-                 num_mines: int,
-                 difficulty: str,
-                 view_type: str
-                 ):
-        """
-        :param width: The horizontal span of the array
-        :param height: The vertical span of the array
-        :param num_mines: The number of mines to be seeded
-        :param difficulty: A string choosing game difficulty. Choose from 'Easy', 'Medium', or 'hard'
-        :param view_type: A string choosing game type. The choice is either 'GUI', or 'TEXT'
-        """
-        self.width = width
-        self.height = height
-        self.num_mines = num_mines
-        self.difficulty = difficulty
-        self.board = Board(self.width, self.height, self.num_mines)
-        if view_type == "GUI":
-            self.view = GUIView(self.width, self.height,
-                                self.num_mines, self)
-        elif view_type == "TEXT":
-            self.view = TextView(self.width, self.height,
-                                 self.num_mines, self)
-        self.view.main()
-
-    def reset(self) -> None:
-        """Resets the game"""
-
-        self.view.reset_view()
-        self.board = Board(self.width, self.height, self.num_mines)
-        self.view = GUIView(self.width, self.height,
-                            self.num_mines, self)
-        self.view.main()
-
-    def reveal_decision(self, index: Coordinate) -> None:
-        """Main decision method determining how to reveal cell."""
-
-        cell_value = self.board.get_cell_value(index)
-        if index in self.board.cells_flagged():
-            return
-
-        if cell_value.isNum():
-            self.reveal_cell(index, cell_value)
-
-        elif (
-            self.board.get_cell_entry(index).isMine() and self.board.game_state != "win"
-        ):
-            self.loss()
-        else:
-            self.reveal_zeroes(index)
-
-        #        Check for win condition
-        cells_unrevealed = self.height * self.width - len(self.board.cells_revealed())
-        if cells_unrevealed == self.num_mines and self.board.game_state != "loss":
-            self.win()
-        self.update_mines()
-
-    def reveal_cell(self, index: Coordinate, value: EntryValue) -> None:
-        """Obtains cell value from model and passes the value to view."""
-
-        if index not in self.board.cells_flagged():
-            self.board.cells_revealed().add(index)
-            self.view.reveal_cell(index, value)
-
-    def reveal_zeroes(self, index: Coordinate) -> None:
-        """Reveals all adjacent cells just until a mine is reached."""
-
-        val = self.board.get_cell_value(index)
-
-        if val.isZero():
-            self.reveal_cell(index, val)
-            # self.reveal_adjacent(index)
-
-            for coord in get_adjacent(index):
-                if self.board.is_valid_cell(coord) and coord not in self.board.revealed_zeroes():
-                    self.board.revealed_zeroes().add(coord)
-                    self.reveal_zeroes(coord)
-
-    def reveal_adjacent(self, index: Coordinate) -> None:
-        """Reveals the 8 adjacent cells to the input cell's index."""
-
-        for coords in get_adjacent(index):
-            if (
-                    0 <= coords[0] <= self.width - 1
-                    and 0 <= coords[1] <= self.height - 1
-            ):
-                cell_value = self.board.get_cell_value(coords)
-                self.reveal_cell(coords, cell_value)
-
-    def update_flagged_cell(self, index: Coordinate) -> None:
-        """Flag/unflag cells for possible mines. Does not reveal cell."""
-
-        if (
-                index not in self.board.cells_revealed()
-                and index not in self.board.cells_flagged()
-        ):
-            self.board.cells_flagged().add(index)
-            self.view.flag_cell(index)
-
-        elif (
-                index not in self.board.cells_revealed()
-                and index in self.board.cells_flagged()
-        ):
-            self.board.cells_flagged().remove(index) # Unflag cell
-            self.view.unflag_cell(index)
-
-        self.update_mines()
-
-    def update_mines(self) -> None:
-        """Update mine counter."""
-
-        mines_left = self.num_mines - len(self.board.cells_flagged())
-
-        if mines_left >= 0:
-            self.view.update_mines_left(mines_left)
-
-    def win(self) -> None:
-        """Sweet sweet victory."""
-
-        self.board.change_game_state("win")
-        self.view.display_win()
-
-    def loss(self) -> None:
-        """Show loss in view, and reveal all cells."""
-
-        self.board.change_game_state("loss")
-        self.view.display_loss()
-
-        #        Reveals all cells
-        for row in range(self.height):
-            for col in range(self.width):
-                cell_value = self.board.get_cell_value((col, row))
-                self.view.reveal_cell((col, row), cell_value)
 
 
 """
@@ -637,7 +688,7 @@ class InitializeGame:
 
         self.root.destroy()
         return Controller(*{
-            'E': (10, 10, 10, difficulty, view_type),
+            'E': (10, 10, 1, difficulty, view_type), # Change back to 10!
             'M': (16, 16, 40, difficulty, view_type),
             'H': (25, 20, 99, difficulty, view_type)
             }[difficulty[0]]
@@ -645,6 +696,23 @@ class InitializeGame:
 
 
 if __name__ == "__main__":
-    game = InitializeGame()
-    # b = Board(3, 4, 5)
-    # b.print()
+    # game = InitializeGame()
+    r = 4
+    c = 4
+    m = 5
+    controller = Controller(c, r, m)
+    v = TextView(c, r, m, controller)
+    v.main()
+
+
+    # controller.board.print()
+    # gen = controller.reveal_decision(Coordinate(0,3))
+    # gen = controller.reveal_all_cells()
+    # for i in (gen):
+    #     print(i)
+
+   
+
+
+
+   
