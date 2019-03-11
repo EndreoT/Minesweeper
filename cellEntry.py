@@ -39,12 +39,16 @@ class EntryValue(Enum):
 
     def isNum(self):
         return type(self.value) is int and self.value >= 0
+    
+    def is_num_and_g_t_zero(self):
+        return type(self.value) is int and self.value > 0
 
     def isZero(self):
         return self.value == 0
     
     def isMine(self):
         return self.value == -1
+
 
 class Entry:
 
@@ -81,12 +85,8 @@ class Board:
         self.init_game_board()
         self._cells_revealed = set()
         self._cells_flagged = set()
-        self._revealed_zeroes = set()
         # self._game_state = None
-    
-    def add_to_revealed_zeroes(self, coord: Coordinate) -> None:
-        self._revealed_zeroes.add(coord)
-    
+
     def add_to_revealed_cells(self, coord: Coordinate) -> None:
         self._cells_revealed.add(coord)
 
@@ -156,15 +156,11 @@ class Board:
     def is_valid_cell(self, coordinate):
         return (0 <= coordinate.row <= self._height - 1) and (0 <= coordinate.col <= self._width - 1)
     
-
     def cells_flagged(self) -> Set[Coordinate]:
         return self._cells_flagged
 
     def cells_revealed(self) -> Set[Coordinate]:
         return self._cells_revealed
-
-    def revealed_zeroes(self) -> Set[Coordinate]:
-        return self._revealed_zeroes
 
     @property
     def game_state(self) -> str:
@@ -183,9 +179,6 @@ class Board:
         for i in result:
             print(i)
             
-            
-
-
 
 from tkinter import Button, Label, Tk, Frame, StringVar
 from typing import Tuple, List, Union
@@ -320,11 +313,6 @@ from typing import Tuple, List, Union
 #         self.mines_left = Label(textvariable=self.mine_count)
 
 
-
-
-
-
-
 class Controller:
     """Sets up minesweeper game logic."""
 
@@ -355,20 +343,16 @@ class Controller:
         #                          self.num_mines, self)
         # self.view.main()
 
-    # def reset(self) -> None:
-    #     """Resets the game"""
+    def reset(self) -> None:
+        """Resets the game"""
 
-    #     self.view.reset_view()
-    #     self.board = Board(self.width, self.height, self.num_mines)
-        # self.view = GUIView(self.width, self.height,
-        #                     self.num_mines, self)
-        # self.view.main()
+        self.board = Board(self.width, self.height, self.num_mines)
 
     def reveal_decision(self, index: Coordinate):
         """Main decision method determining how to reveal cell."""
 
         cell_value = self.board.get_cell_value(index)
-        if index in self.board.cells_flagged().union(self.board.revealed_zeroes()).union(self.board.cells_revealed()):
+        if index in self.board.cells_flagged().union(self.board.cells_revealed()):
             return []
         if cell_value.isZero():
             return self.reveal_zeroes(index)
@@ -392,59 +376,47 @@ class Controller:
         # """Obtains cell value from model and passes the value to view."""
 
         if index not in self.board.cells_flagged() and index not in self.board.cells_revealed():
-            if value.isZero():
-                self.board.add_to_revealed_zeroes(index)
-            elif value.isNum():
-                self.board.add_to_revealed_cells(index)
+            self.board.add_to_revealed_cells(index)
             return (index, value)
 
     def reveal_zeroes(self, index: Coordinate):
         """Reveals all adjacent cells just until a mine is reached."""
         result = []
         def reveal_helper(index: Coordinate) -> None:
+            if index in self.board.cells_flagged():
+                return
             val = self.board.get_cell_value(index)
+            if val.is_num_and_g_t_zero():
+                result.append(self.reveal_cell(index, val))
+                return
             if val.isZero():
                 result.append(self.reveal_cell(index, val))
-                # self.board.add_to_revealed_zeroes(index)
                 for coord in get_adjacent(index):
-                    if self.board.is_valid_cell(coord) and self.board.get_cell_value(coord).isZero() and coord not in self.board.revealed_zeroes(): # revealed zeroes necessary?
-                        # self.board.add_to_revealed_zeroes(coord)
+                    if self.board.is_valid_cell(coord) and coord not in self.board.cells_revealed(): #self.board.get_cell_value(coord).isZero()
                         reveal_helper(coord)
         reveal_helper(index)
         return result
-            
-
-    # def reveal_adjacent(self, index: Coordinate) -> None:
-    #     """Reveals the 8 adjacent cells to the input cell's index."""
-
-    #     for coords in get_adjacent(index):
-    #         if (
-    #                 0 <= coords[0] <= self.width - 1
-    #                 and 0 <= coords[1] <= self.height - 1
-    #         ):
-    #             cell_value = self.board.get_cell_value(coords)
-    #             self.reveal_cell(coords, cell_value)
-
+       
     def update_flagged_cell(self, index: Coordinate) -> int:
         """Flag/unflag cells for possible mines. Does not reveal cell."""
-        if index in self.board.cells_revealed().union(self.board.revealed_zeroes()):
-            return 0
+        if index in self.board.cells_revealed():
+            return 0 #Don't flag
         if index not in self.board.cells_flagged():
             self.board.add_to_cells_flagged(index)
             return 1 # Flag
         else:
-            self.board.remove_from_cells_flagged(index) # Unflag cell
-            return -1
+            self.board.remove_from_cells_flagged(index)
+            return -1 # Unflag
 
-        # self.update_mines()
+        self.update_mines()
 
-    # def update_mines(self) -> None:
-    #     """Update mine counter."""
+    def update_mines(self) -> None:
+        """Update mine counter."""
 
-    #     mines_left = self.num_mines - len(self.board.cells_flagged())
+        mines_left = self.num_mines - len(self.board.cells_flagged())
 
-    #     if mines_left >= 0:
-    #         self.view.update_mines_left(mines_left)
+        if mines_left >= 0:
+            return mines_left
 
     # def win(self) -> None:
     #     """Sweet sweet victory."""
@@ -458,6 +430,7 @@ class Controller:
             for col in range(self.width):
                 coord = Coordinate(row, col)
                 cell_value = self.board.get_cell_value(coord)
+                self.board.add_to_revealed_cells(coord)
                 result.append((coord, cell_value))
         return result
 
@@ -536,20 +509,18 @@ class TextView:
         x, y = index
         self.cell_view[y][x] = "cell"
 
-    @staticmethod
-    def update_mines_left(mines) -> None:
+
+    def update_mines_left(self, mines: int) -> None:
         """Updates mine counter."""
 
         print("Mines remaining: " + str(mines))
 
-    @staticmethod
-    def display_loss() -> None:
-        """Displays the lose label when loss condition is reached."""
+    def display_loss(self) -> None:
+        """Displays the loss label when loss condition is reached."""
 
         print("You Lose!")
 
-    @staticmethod
-    def display_win() -> None:
+    def display_win(self) -> None:
         """Displays the win label when win condition is reached."""
 
         print("You Win!")
@@ -560,10 +531,11 @@ class TextView:
                 cmd, *coords = input(
                     "Choose a cell in the format: "
                     + "flag/reveal x y. Type END to quit.  ").split()
-                input_coord = Coordinate(int(coords[1]), int(coords[0])) 
+                print()
                 if cmd.lower()[0] == "e":
                     break
-                elif cmd.lower()[0] == "f":
+                input_coord = Coordinate(int(coords[1]), int(coords[0])) 
+                if cmd.lower()[0] == "f":
                     is_flagged = self.controller.update_flagged_cell(input_coord)
                     if is_flagged == 1:
                         self.flag_cell(input_coord)
@@ -578,10 +550,15 @@ class TextView:
                         self.reveal_cell(output_coord, value)
                     if mine_found:
                         for output_coord, value in self.controller.reveal_all_cells():
-                            self.reveal_cell(output_coord, value)                     
+                            self.reveal_cell(output_coord, value)      
+                        self.display_loss()               
                 else:
                     print("Unknown command")
+                   
                 self.show_grid()
+                mines_left = self.controller.update_mines()
+                self.update_mines_left(mines_left)
+                
             # except Exception:
             #     print("Incorrect selection or format")
 
@@ -687,7 +664,7 @@ if __name__ == "__main__":
     # game = InitializeGame()
     r = 4
     c = 4
-    m = 5
+    m = 1
     controller = Controller(c, r, m)
     v = TextView(c, r, m, controller)
     v.main()
