@@ -1,35 +1,33 @@
-
+from enum import Enum
+from tkinter import Button, Label, Tk
 from typing import Set, Tuple, List, Union
 
 from coordinate import Coordinate
 from controller import Controller
 from getAdjacent import get_adjacent
-from views import TextView, GUIView
+from views import TextView
 
 
 """
 Implements a basic minesweeper game using the tkinter module.
-Uses a Model-GUIView-Controller structure.
+Uses a Model-View-Controller structure.
 """
 
-from tkinter import Button, Label, Tk
+# TODO: implement Difficult Enum into InitializeGame
+# class Difficulty(Enum):
 
-from enum import Enum
+#     EASY = 0
+#     MEDIUM = 1
+#     HARD = 2
 
-class Difficulty(Enum):
-
-    EASY = 0
-    MEDIUM = 1
-    HARD = 2
-
-    def is_easy(self):
-        return self.value == 0
+#     def is_easy(self):
+#         return self.value == 0
     
-    def is_medium(self):
-        return self.value == 1
+#     def is_medium(self):
+#         return self.value == 1
     
-    def is_hard(self):
-        return self.value == 2
+#     def is_hard(self):
+#         return self.value == 2
 
 
 class InitializeGame:
@@ -111,14 +109,9 @@ class InitializeGame:
 
     def init_game(self, difficulty: str, view_type: str) -> Controller:
         """Begins game."""
-        View = None
-        if view_type == "TEXT":
-            View = TextView
-        else:
-            View = GUIView
 
         self.root.destroy()
-        return View(*{
+        return TextView(*{
             'E': (10, 10, 10), 
             'M': (16, 16, 40),
             'H': (25, 20, 99)
