@@ -4,7 +4,7 @@ from typing import Set, Tuple, List, Union
 from coordinate import Coordinate
 from controller import Controller
 from getAdjacent import get_adjacent
-from views import TextView
+from views import TextView, GUIView
 
 
 """
@@ -13,6 +13,23 @@ Uses a Model-GUIView-Controller structure.
 """
 
 from tkinter import Button, Label, Tk
+
+from enum import Enum
+
+class Difficulty(Enum):
+
+    EASY = 0
+    MEDIUM = 1
+    HARD = 2
+
+    def is_easy(self):
+        return self.value == 0
+    
+    def is_medium(self):
+        return self.value == 1
+    
+    def is_hard(self):
+        return self.value == 2
 
 
 class InitializeGame:
@@ -94,45 +111,24 @@ class InitializeGame:
 
     def init_game(self, difficulty: str, view_type: str) -> Controller:
         """Begins game."""
+        View = None
+        if view_type == "TEXT":
+            View = TextView
+        else:
+            View = GUIView
 
         self.root.destroy()
-        return Controller(*{
-            'E': (10, 10, 1, difficulty, view_type), # Change back to 10!
-            'M': (16, 16, 40, difficulty, view_type),
-            'H': (25, 20, 99, difficulty, view_type)
+        return View(*{
+            'E': (10, 10, 10), 
+            'M': (16, 16, 40),
+            'H': (25, 20, 99)
             }[difficulty[0]]
             )
 
 
-r = 3
-c = 4
-m = 1
-controller = Controller(c, r, m)
-# controller.board.print()
-v = TextView(c, r, m, controller)
-v.main()
-
-# if __name__ == "__main__":
-    # game = InitializeGame()
-    # r = 3
-    # c = 4
-    # m = 1
-    # controller = Controller(c, r, m)
-    # # controller.board.print()
-    # v = TextView(c, r, m, controller)
-    # v.main()
-
-    # controller.board.reset()
-    # print()
-    # controller.board.print()
-
-    # controller.board.print()
-    # gen = controller.reveal_decision(Coordinate(0,3))
-    # gen = controller.reveal_all_cells()
-    # for i in (gen):
-    #     print(i)
-
-   
+if __name__ == "__main__":
+    game = InitializeGame()
+  
 
 
 

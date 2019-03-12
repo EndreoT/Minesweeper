@@ -7,7 +7,7 @@ from coordinate import Coordinate
 from cellEntry import Entry, EntryValue
 from getAdjacent import get_adjacent
 
-# GameState = namedtuple("GameState", ["finished", "win", "loss"], defaults=[False, False, False])
+
 class GameState:
     def __init__(self, finished=False, win=False, loss=False):
         self.finished = finished
@@ -41,13 +41,37 @@ class Board:
         self._num_mines = num_mines
         self._wins = 0
         self._losses = 0
-        self.grid = None
-        
-        self.init_game_board()
         self._cells_revealed = set()
         self._cells_flagged = set()
         self._game_state = GameState()
-    
+        self.grid = None
+        self.init_game_board()
+
+    def _create_grid(self) -> List[List[Entry]]:
+        # """Returns a (width by height) grid of elements with value of 0."""
+
+        self.grid = [[Entry(EntryValue.NULL)] * self._width for _ in range(self._height)]
+
+    def _add_mines(self) -> None:
+        # """Randomly adds mines to board grid."""
+
+        for col, row in sample(list(product(range(self._width), range(self._height))), self._num_mines):
+            self.grid[row][col] = Entry(EntryValue.MINE)
+
+        # self.grid[1][1] = Entry(EntryValue.MINE)
+
+    def _set_adjacent_mine_count(self) -> None:
+        # """Sets cell values to the number of their adjacent mines."""
+
+        for r in range(len(self.grid)):
+            for c in range(len(self.grid[0])):
+                coord = Coordinate(r, c)
+                if not self.get_cell_entry(coord).isMine():
+                    mine_count_array = [self.get_cell_entry(index).isMine() for index in get_adjacent(coord) if self.is_valid_cell(index)]
+                    num_mines = sum(mine_count_array)
+                    entry_value = EntryValue(num_mines)
+                    self.set_cell(coord, Entry(entry_value))
+        
     @property
     def wins(self):
         return self._wins
@@ -93,7 +117,6 @@ class Board:
         self._create_grid()
         self._add_mines()
         self._set_adjacent_mine_count()
-        self.print()
         
     def reset(self):
         self._cells_revealed = set()
@@ -102,33 +125,6 @@ class Board:
         self._add_mines()
         self._set_adjacent_mine_count()
         self._game_state.reset_game_state()
-        self.print()
-
-
-    def _create_grid(self):
-        # """Returns a (width by height) grid of elements with value of 0."""
-
-        self.grid = [[Entry(EntryValue.NULL)] * self._width for _ in range(self._height)]
-
-    def _add_mines(self) -> None:
-        # """Randomly adds mines to board grid."""
-
-        for col, row in sample(list(product(range(self._width), range(self._height))), self._num_mines):
-            self.grid[row][col] = Entry(EntryValue.MINE)
-
-        # self.grid[1][1] = Entry(EntryValue.MINE)
-
-    def _set_adjacent_mine_count(self) -> None:
-        # """Sets cell values to the number of their adjacent mines."""
-
-        for r in range(len(self.grid)):
-            for c in range(len(self.grid[0])):
-                coord = Coordinate(r, c)
-                if not self.get_cell_entry(coord).isMine():
-                    mine_count_array = [self.get_cell_entry(index).isMine() for index in get_adjacent(coord) if self.is_valid_cell(index)]
-                    num_mines = sum(mine_count_array)
-                    entry_value = EntryValue(num_mines)
-                    self.set_cell(coord, Entry(entry_value))
     
     def set_cell(self, coord: Coordinate, entry: Entry) -> None:
         self.grid[coord.row][coord.col] = entry
@@ -169,4 +165,3 @@ class Board:
         for i in result:
             print(i)
             
-

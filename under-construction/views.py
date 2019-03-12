@@ -5,7 +5,6 @@ from coordinate import Coordinate
 from controller import Controller
 from cellEntry import Entry, EntryValue
 
-
 class TextView:
     """Creates a text interface of the minesweeper game."""
 
@@ -13,7 +12,6 @@ class TextView:
                  width: int,
                  height: int,
                  num_mines: int,
-                 controller: Controller
                  ):
         """
         :param width: The horizontal span of the array
@@ -24,7 +22,7 @@ class TextView:
         self.width = width
         self.height = height
         self.num_mines = num_mines
-        self.controller = controller
+        self.controller = Controller(self.width, self.height, self.num_mines)
         self.reveal_dict = {
             0: ' 0  ', 1: ' 1  ', 2: ' 2  ',
             3: ' 3  ', 4: ' 4  ', 5: ' 5  ',
@@ -35,7 +33,7 @@ class TextView:
         self.flag_value = "FLAG"
         self.cell_view = None
         self.create_cell_view()
-        # self.main()
+        self.main()
 
     def create_cell_view(self) -> List[List[str]]:
         """Create text view of cells."""
@@ -264,4 +262,3 @@ class TopPanel(Frame):
         self.mine_count = StringVar()
         self.mine_count.set('Mines remaining: ' + str(self.num_mines))
         self.mines_left = Label(textvariable=self.mine_count)
-
