@@ -3,13 +3,13 @@ from typing import Set
 from coordinate import Coordinate
 
 def get_adjacent(index: Coordinate) -> Set[Coordinate]:
-    """Returns adjacent coordinates for input coordinate"""
+    """Returns all 9 adjacent coordinates of an input coordinate"""
 
     row, col = index.row, index.col
 
     coordinates = [
         (col - 1, row - 1), (col, row - 1), (col + 1, row - 1),
-        (col - 1, row),                 (col + 1, row),
+        (col - 1, row),                     (col + 1, row),
         (col - 1, row + 1), (col, row + 1), (col + 1, row + 1)
     ]
     output = set()

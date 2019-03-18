@@ -5,6 +5,9 @@ from coordinate import Coordinate
 from controller import Controller
 from cellEntry import Entry, EntryValue
 
+# TODO: Use JavaScript, HTML, CSS for game display and Python board and controller as API 
+
+
 class TextView:
     """Creates a text interface of the minesweeper game."""
 
@@ -42,13 +45,17 @@ class TextView:
 
     def show_grid(self) -> None:
         """Prints text grid to console. Includes column numbers."""
-        mines_left = self.controller.update_mines() 
+        mines_left = self.controller.get_num_mines()
         top_row = [str(i) + ":" for i in range(self.width)]
         print("Wins: " + str(self.controller.get_wins()))
         print("Losses: " + str(self.controller.get_losses()))
         print(" ", *top_row, sep=" " * 4)
         for row in range(len(self.cell_view)):
-            print(str(row) + ":", *self.cell_view[row], sep="  ")
+            if row > 9:
+                sep = ":"
+            else:
+                sep = " :"
+            print(str(row) + sep, *self.cell_view[row], sep="  ")
         self.update_mines_left(mines_left)
 
 
@@ -116,7 +123,7 @@ class TextView:
                 self.show_grid()     
                 
                 # Check for win condition 
-                game_state = self.controller.update_game_state()
+                game_state = self.controller.get_game_state()
                 if game_state.finished:
                     if game_state.win:
                         self.controller.increment_wins()
@@ -135,132 +142,3 @@ class TextView:
                 print("Incorrect selection or format")
 
 
-# TODO: Use JavaScript, HTML, CSS for game display and Python board and controller as API 
-
-# class GUIView:
-#     """Creates a GUI with a grid of cell buttons."""
-
-#     def __init__(self,
-#                  width: int,
-#                  height: int,
-#                  num_mines: int):
-#         """
-#         :param width: The horizontal span of the array
-#         :param height: The vertical span of the array
-#         :param num_mines: The number of mines to be seeded
-#         :param controller: A controller class instance
-#         """
-#         self.master = Tk()
-#         self.width = width
-#         self.height = height
-#         self.num_mines = num_mines
-#         self.controller = Controller(self.width, self.height, self.num_mines)
-#         self.color_dict = {
-#             0: 'white', 1: 'blue', 2: 'green',
-#             3: 'red', 4: 'orange', 5: 'purple',
-#             6: 'grey', 7: 'grey', 8: 'grey',
-#             -1: "black"
-#             }
-#         self.master.title('Minesweeper')
-#         self.main()
-
-#     def _create_buttons(self) -> list:
-#         """Create cell button widgets."""
-
-#         def create_button(x: int, y: int) -> Button:
-#             button = Button(self.master, width=5, bg='grey')
-#             button.grid(row=y + 5, column=x + 1)
-#             return button
-
-#         return [
-#                 [create_button(x, y) for x in range(self.width)]
-#                 for y in range(self.height)
-#                 ]
-
-#     def _initialize_bindings(self) -> None:
-#         """Set up the reveal cell and the flag cell key bindings."""
-
-#         for x in range(self.width):
-#             for y in range(self.height):
-#                 def closure_helper(f, index):
-#                     def g(_):
-#                         f(index)
-#                     return g
-
-#                 # Bind reveal decision method to left click
-#                 self.buttons[y][x].bind(
-#                     '<Button-1>', closure_helper(
-#                         self.controller.reveal_decision, Coordinate(y, x)))
-
-#                 # Bind flag method to right click
-#                 self.buttons[y][x].bind(
-#                     '<Button-3>', closure_helper(
-#                         self.controller.update_flagged_cell, (x, y)))
-
-#         # Set up reset button
-#         self.top_panel.reset_button.bind(
-#             '<Button>', lambda event: self.controller.reset())
-
-#     def reset_view(self) -> None:
-#         """Destroys the GUI. Controller will create a new GUI"""
-
-#         self.master.destroy()
-
-#     def reveal_cell(self, index: Coordinate, value: Union[int, str]) -> None:
-#         """Reveals cell's value on GUI."""
-
-#         x, y = index.row, index.col
-#         self.buttons[y][x].configure(text=value, bg=self.color_dict[value.value])
-
-#     def flag_cell(self, index: Coordinate) -> None:
-#         """Flag cell in GUI"""
-
-#         x, y = index.row, index.col
-#         self.buttons[y][x].configure(text="FLAG", bg="yellow")
-
-#     def unflag_cell(self, index: Coordinate) -> None:
-#         """Unflag cell in GUI"""
-#         x, y = index.row, index.col
-#         self.buttons[y][x].configure(text="", bg="grey")
-
-#     def update_mines_left(self, mines: int) -> None:
-#         """Updates mine counter widget"""
-
-#         self.top_panel.mine_count.set("Mines remaining: " + str(mines))
-
-#     def display_loss(self) -> None:
-#         """Display the loss label when lose condition is reached."""
-
-#         self.top_panel.loss_label.grid(row=0, columnspan=10)
-
-#     def display_win(self) -> None:
-#         """Display the win label when win condition is reached."""
-
-#         self.top_panel.win_label.grid(row=0, columnspan=10)
-
-#     def main(self) -> None:
-#         self.top_panel = TopPanel(self.master, self.num_mines)
-#         self.buttons = self._create_buttons()
-#         self.top_panel.mines_left.grid(row=0, columnspan=5)
-#         self._initialize_bindings()
-#         self.master.mainloop()
-
-
-# class TopPanel(Frame):
-#     """Creates a top panel which contains game information."""
-
-#     def __init__(self, master: Tk, num_mines: int):
-#         Frame.__init__(self, master)
-#         self.master = master
-#         self.num_mines = num_mines
-#         self.grid()
-
-#         self.reset_button = Button(self.master, width=7, text='Reset')
-#         self.reset_button.grid(row=0)
-
-#         self.loss_label = Label(text='You Lose!', bg='red')
-#         self.win_label = Label(text='You Win!', bg='green')
-
-#         self.mine_count = StringVar()
-#         self.mine_count.set('Mines remaining: ' + str(self.num_mines))
-#         self.mines_left = Label(textvariable=self.mine_count)

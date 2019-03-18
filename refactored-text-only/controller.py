@@ -17,28 +17,33 @@ class Controller:
         """
         self.width = width
         self.height = height
-        self.num_mines = num_mines
-        self.total_cells = self.width * self.height
-        self.board = Board(self.width, self.height, self.num_mines)
+        self._num_mines = num_mines
+        self._total_cells = self.width * self.height
+        self.board = Board(self.width, self.height, self._num_mines)
 
-    def get_wins(self):
+    def get_wins(self) -> int:
         return self.board.wins
-    
-    def get_losses(self):
+
+    def get_losses(self) -> int:
         return self.board.losses
-    
-    def increment_wins(self):
-        self.board.increment_wins() 
-    
-    def increment_losses(self):
+
+    def increment_wins(self) -> None:
+        self.board.increment_wins()
+
+    def increment_losses(self) -> None:
         self.board.increment_losses()
 
-    def update_game_state(self) -> GameState:
-        cells_unrevealed = self.total_cells - self.num_cells_revealed()
-        game_state = self.board.get_game_state()
-        if cells_unrevealed == self.num_mines:
-            self.board.get_game_state().set_game_state(True, True, False)
-        return game_state
+    def get_game_state(self) -> GameState:
+        return self.board.get_game_state()
+
+    def get_num_mines(self) -> int:
+        return self.board._mines_left
+
+    def update_game_state(self) -> None:
+        cells_unrevealed = self._total_cells - self.num_cells_revealed()
+        self.board.get_game_state()
+        if cells_unrevealed == self._num_mines:
+            self.get_game_state().set_game_state(True, True, False)
 
     def num_cells_revealed(self) -> int:
         return len(self.board.cells_revealed())
@@ -52,16 +57,19 @@ class Controller:
         """Main decision method determining how to reveal cell."""
 
         cell_value = self.board.get_cell_value(index)
+        result = None
         if index in self.board.cells_flagged().union(self.board.cells_revealed()):
-            return []
-        if cell_value.isZero():
-            return self.reveal_zeroes(index)
+            result = []
+        elif cell_value.isZero():
+            result = self.reveal_zeroes(index)
         elif cell_value.isNum():
-            return [self.reveal_cell(index, cell_value)]
-        else: 
+            result = [self.reveal_cell(index, cell_value)]
+        else:
             # Found mine. Game over
             self.board.get_game_state().set_game_state(True, False, False)
-            return [self.reveal_cell(index, cell_value)]
+            result = [self.reveal_cell(index, cell_value)]
+        self.update_game_state()
+        return result
 
     def reveal_cell(self, index: Coordinate, value: EntryValue) -> Tuple[Coordinate, EntryValue]:
         # """Obtains cell value from model and passes the value to view."""
@@ -70,9 +78,10 @@ class Controller:
             self.board.add_to_revealed_cells(index)
             return (index, value)
 
-    def reveal_zeroes(self, index: Coordinate):
+    def reveal_zeroes(self, index: Coordinate) -> List[Tuple[Coordinate, EntryValue]]:
         """Reveals all adjacent cells just until a mine is reached."""
         result = []
+
         def reveal_helper(index: Coordinate) -> None:
             if index in self.board.cells_flagged():
                 return
@@ -87,29 +96,19 @@ class Controller:
                         reveal_helper(coord)
         reveal_helper(index)
         return result
-       
+
     def update_flagged_cell(self, index: Coordinate) -> int:
-        """Flag/unflag cells for possible mines. Does not reveal cell."""
+        """Adds or removes cell from flagged cells. Returns int indicating view to flag or unflag cell."""
         if index in self.board.cells_revealed():
-            return 0 # Don't flag
+            return 0  # Don't flag cell
         if index not in self.board.cells_flagged():
             self.board.add_to_cells_flagged(index)
-            return 1 # Flag
+            return 1  # Flag cell
         else:
             self.board.remove_from_cells_flagged(index)
-            return -1 # Unflag
+            return -1  # Unflag cell
 
-        self.update_mines()
-
-    def update_mines(self) -> None:
-        """Update mine counter."""
-
-        mines_left = self.num_mines - len(self.board.cells_flagged())
-
-        if mines_left >= 0:
-            return mines_left
-
-    def reveal_all_cells(self):
+    def reveal_all_cells(self) -> List[Tuple[Coordinate, EntryValue]]:
         result = []
         for row in range(self.height):
             for col in range(self.width):

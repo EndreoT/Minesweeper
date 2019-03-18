@@ -27,6 +27,7 @@ class EntryValue(Enum):
 
 
 class Entry:
+    """The Object contained in each Board row and column"""
 
     def __init__(self, value: EntryValue):
         if type(value) != EntryValue:
