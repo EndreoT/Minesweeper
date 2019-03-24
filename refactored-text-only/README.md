@@ -1,1 +1,1 @@
-Improved iteration of minesweeper. However, only the text based version works currently
+Improved iteration of minesweeper. Only the text based version is implemented
