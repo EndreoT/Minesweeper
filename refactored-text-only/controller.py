@@ -1,3 +1,5 @@
+from collections import deque as Deque
+
 from typing import List, Tuple
 
 from getAdjacent import get_adjacent
@@ -37,11 +39,10 @@ class Controller:
         return self.board.get_game_state()
 
     def get_num_mines(self) -> int:
-        return self.board._mines_left
+        return self.board.mines_left
 
     def update_game_state(self) -> None:
         cells_unrevealed = self._total_cells - self.num_cells_revealed()
-        self.board.get_game_state()
         if cells_unrevealed == self._num_mines:
             self.get_game_state().set_game_state(True, True, False)
 
@@ -53,7 +54,7 @@ class Controller:
 
         self.board.reset()
 
-    def reveal_decision(self, index: Coordinate):
+    def reveal_decision(self, index: Coordinate) -> List[Tuple[Coordinate, EntryValue]]:
         """Main decision method determining how to reveal cell."""
 
         cell_value = self.board.get_cell_value(index)
@@ -72,29 +73,60 @@ class Controller:
         return result
 
     def reveal_cell(self, index: Coordinate, value: EntryValue) -> Tuple[Coordinate, EntryValue]:
-        # """Obtains cell value from model and passes the value to view."""
+        # """Obtains cell value from model."""
 
         if index not in self.board.cells_flagged() and index not in self.board.cells_revealed():
             self.board.add_to_revealed_cells(index)
             return (index, value)
 
     def reveal_zeroes(self, index: Coordinate) -> List[Tuple[Coordinate, EntryValue]]:
-        """Reveals all adjacent cells just until a mine is reached."""
-        result = []
+        """Reveals all adjacent cells if the current Entry has a zero value."""
 
-        def reveal_helper(index: Coordinate) -> None:
-            if index in self.board.cells_flagged():
-                return
-            val = self.board.get_cell_value(index)
+        # result = []
+    # TODO convert to BFS instead -> No call stack
+        # def reveal_helper(index: Coordinate) -> None:
+
+        # def reveal_helper(index: Coordinate) -> None:
+        #     if index in self.board.cells_flagged():
+        #         return
+        #     val = self.board.get_cell_value(index)
+        #     if val.is_num_and_g_t_zero():
+        #         result.append(self.reveal_cell(index, val))
+        #         return
+        #     if val.isZero():
+        #         result.append(self.reveal_cell(index, val))
+        #         for coord in get_adjacent(index):
+        #             if self.board.is_valid_cell(coord) and coord not in self.board.cells_revealed():
+        #                 reveal_helper(coord)
+        # reveal_helper(index)
+
+        # BFS
+        deque = Deque()
+        deque.appendleft(index)
+        result = []
+        beingExplored = set()
+        count = 0
+        while deque:
+            cell = deque.pop()
+            count += 1
+            val = self.board.get_cell_value(cell)
             if val.is_num_and_g_t_zero():
-                result.append(self.reveal_cell(index, val))
-                return
-            if val.isZero():
-                result.append(self.reveal_cell(index, val))
-                for coord in get_adjacent(index):
-                    if self.board.is_valid_cell(coord) and coord not in self.board.cells_revealed():
-                        reveal_helper(coord)
-        reveal_helper(index)
+                if cell in beingExplored:
+                    beingExplored.remove(cell)
+                result.append(self.reveal_cell(cell, val))
+            else:  # val == 0
+                for coord in get_adjacent(cell):
+                    if (
+                        self.board.is_valid_cell(coord) 
+                        and coord not in self.board.cells_revealed() 
+                        and coord not in beingExplored
+                    ):
+                        beingExplored.add(coord)          
+                        deque.appendleft(coord)
+                if cell in beingExplored:
+                    beingExplored.remove(cell)
+                result.append(self.reveal_cell(cell, val))
+        print('count', count)
         return result
 
     def update_flagged_cell(self, index: Coordinate) -> int:
@@ -110,6 +142,7 @@ class Controller:
 
     def reveal_all_cells(self) -> List[Tuple[Coordinate, EntryValue]]:
         result = []
+
         for row in range(self.height):
             for col in range(self.width):
                 coord = Coordinate(row, col)

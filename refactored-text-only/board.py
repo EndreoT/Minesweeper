@@ -101,6 +101,10 @@ class Board:
     @property
     def losses(self):
         return self._losses
+    
+    @property
+    def mines_left(self):
+        return self._mines_left
 
     def increment_wins(self) -> None:
         self._wins += 1
@@ -129,12 +133,12 @@ class Board:
         self._grid[coord.row][coord.col] = entry
 
     def get_cell_entry(self, coord: Coordinate) -> Entry:
-        # """Returns model's cell value at the given index."""
+        """Returns Entry object at the given index."""
 
         return self._grid[coord.row][coord.col]
 
     def get_cell_value(self, coord: Coordinate) -> EntryValue:
-        # """Returns model's cell value at the given index."""
+        """Returns EntryValue at the given index."""
 
         return self.get_cell_entry(coord).value
 
@@ -147,12 +151,10 @@ class Board:
     def cells_revealed(self) -> Set[Coordinate]:
         return self._cells_revealed
 
-    
-
     def change_game_state(self, state: str) -> None:
         self._game_state = state
 
-    def print(self):
+    def print(self) -> None:
         result = []
         for row in self._grid:
             row_str = []

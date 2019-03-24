@@ -30,7 +30,7 @@ Uses a Model-View-Controller structure.
 #         return self.value == 2
 
 if __name__ == "__main__":
-    TextView(10, 10, 10)
+    TextView(10, 10, 1)
            
   
 
