@@ -1,11 +1,10 @@
-from tkinter import Button, Label, Tk, Frame, StringVar
 from typing import Tuple, List, Union
 
 from coordinate import Coordinate
 from controller import Controller
 from cellEntry import Entry, EntryValue
 
-# TODO: Use JavaScript, HTML, CSS for game display and Python board and controller as API
+# TODO: Use JavaScript, HTML, CSS for game display. Convert Python into JS
 
 
 class TextView:
@@ -92,51 +91,52 @@ class TextView:
     def main(self) -> None:
         self.show_grid()
         while True:
-            # try:
-            cmd, *coords = input(
-                "Choose a cell in the space separated format: "
-                + "flag/reveal row col. Type END to quit.  ").split()
-            print()
-            if cmd.lower()[0] == "e":
-                break
-            input_coord = Coordinate(int(coords[0]), int(coords[1]))
-            if cmd.lower()[0] == "f":
-                is_flagged = self.controller.update_flagged_cell(input_coord)
-                if is_flagged == 1:
-                    self.flag_cell(input_coord)
-                elif is_flagged == -1:
-                    self.unflag_cell(input_coord)
-            elif cmd.lower()[0] == "r":
-                result = self.controller.reveal_decision(input_coord)
-                mine_found = False
-                for output_coord, value in result:
-                    if value.isMine():
-                        mine_found = True
-                        break
-                    self.reveal_cell(output_coord, value)
-                if mine_found:
-                    for output_coord, value in self.controller.reveal_all_cells():
+            try:
+                cmd, *coords = input(
+                    "Choose a cell in the space separated format: "
+                    + "flag/reveal row col. Type END to quit.  ").split()
+                print()
+                if cmd.lower()[0] == "e":
+                    break
+                input_coord = Coordinate(int(coords[0]), int(coords[1]))
+                if cmd.lower()[0] == "f":
+                    is_flagged = self.controller.update_flagged_cell(
+                        input_coord)
+                    if is_flagged == 1:
+                        self.flag_cell(input_coord)
+                    elif is_flagged == -1:
+                        self.unflag_cell(input_coord)
+                elif cmd.lower()[0] == "r":
+                    result = self.controller.reveal_decision(input_coord)
+                    mine_found = False
+                    for output_coord, value in result:
+                        if value.isMine():
+                            mine_found = True
+                            break
                         self.reveal_cell(output_coord, value)
-            else:
-                print("Unknown command")
-
-            self.show_grid()
-
-            # Check for win condition
-            game_state = self.controller.get_game_state()
-            if game_state.finished:
-                if game_state.win:
-                    self.controller.increment_wins()
-                    self.display_win()
+                    if mine_found:
+                        for output_coord, value in self.controller.reveal_all_cells():
+                            self.reveal_cell(output_coord, value)
                 else:
-                    self.controller.increment_losses()
-                    self.display_loss()
-                print()
-                input("Enter any key to play again ")
-                print()
-                self.controller.reset()
-                self.create_cell_view()
+                    print("Unknown command")
+
                 self.show_grid()
 
-            # except Exception:
-            #     print("Incorrect selection or format")
+                # Check for win condition
+                game_state = self.controller.get_game_state()
+                if game_state.finished:
+                    if game_state.win:
+                        self.controller.increment_wins()
+                        self.display_win()
+                    else:
+                        self.controller.increment_losses()
+                        self.display_loss()
+                    print()
+                    input("Enter any key to play again ")
+                    print()
+                    self.controller.reset()
+                    self.create_cell_view()
+                    self.show_grid()
+
+            except Exception:
+                print("Incorrect selection or format")

@@ -83,9 +83,7 @@ class Controller:
         """Reveals all adjacent cells if the current Entry has a zero value."""
 
         # result = []
-    # TODO convert to BFS instead -> No call stack
-        # def reveal_helper(index: Coordinate) -> None:
-
+        # DFS -> Uses call stack
         # def reveal_helper(index: Coordinate) -> None:
         #     if index in self.board.cells_flagged():
         #         return
@@ -101,32 +99,31 @@ class Controller:
         # reveal_helper(index)
 
         # BFS
-        deque = Deque()
-        deque.appendleft(index)
+        queue = Deque()
+        queue.appendleft(index)
         result = []
-        beingExplored = set()
-        count = 0
-        while deque:
-            cell = deque.pop()
-            count += 1
+        isBeingExplored = set()
+ 
+        while queue:
+            cell = queue.pop()
             val = self.board.get_cell_value(cell)
-            if val.is_num_and_g_t_zero():
-                if cell in beingExplored:
-                    beingExplored.remove(cell)
+            if val.is_num_and_g_t_zero(): # val > 0
+                if cell in isBeingExplored:
+                    isBeingExplored.remove(cell)
                 result.append(self.reveal_cell(cell, val))
             else:  # val == 0
                 for coord in get_adjacent(cell):
                     if (
                         self.board.is_valid_cell(coord) 
                         and coord not in self.board.cells_revealed() 
-                        and coord not in beingExplored
+                        and coord not in isBeingExplored
                     ):
-                        beingExplored.add(coord)          
-                        deque.appendleft(coord)
-                if cell in beingExplored:
-                    beingExplored.remove(cell)
+                        isBeingExplored.add(coord)          
+                        queue.appendleft(coord)
+                if cell in isBeingExplored:
+                    isBeingExplored.remove(cell)
                 result.append(self.reveal_cell(cell, val))
-        print('count', count)
+
         return result
 
     def update_flagged_cell(self, index: Coordinate) -> int:
