@@ -1,5 +1,7 @@
 # Minesweeper
 
+![bamazonCustomer.js](./assets/images/minesweeper-long.png)
+
 ### Description
 Play a simple minesweeper game. Players can choose from either a GUI verstion (recommended), or a text based interface for the masochists. 
 
